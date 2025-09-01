@@ -1,0 +1,14 @@
+{
+  "name": "jiyung-portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx @11ty/eleventy --serve",
+    "build": "npx @11ty/eleventy",
+    "clean": "rm -rf _site"
+  },
+  "devDependencies": {
+    "@11ty/eleventy": "^3.0.0",
+    "fast-glob": "^3.3.2"
+  }
+}

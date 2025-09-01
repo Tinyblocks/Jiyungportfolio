@@ -1,0 +1,12 @@
+---
+layout: layouts/base.njk
+title: Jiyung Lee — Portfolio
+bodyClass: page--index
+---
+<section id="gallery" class="organic" aria-live="polite" aria-busy="false">
+  {% for project in collections.projects %}
+    <a class="tile" href="{{ project.url }}" data-category="{{ project.data.category }}">
+      <img class="tile__image" src="{{ project.data.cover }}" alt="{{ project.data.title }} ({{ project.data.year }})" loading="lazy" />
+    </a>
+  {% endfor %}
+</section>
