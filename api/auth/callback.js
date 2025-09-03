@@ -39,10 +39,12 @@ module.exports = async (req, res) => {
     const html = `<!doctype html><html><body>
       <script>
         (function(){
-          var payload = { token: ${JSON.stringify(token)}, provider: 'github' };
-          var msg = 'authorization:github:success:' + JSON.stringify(payload);
+          var tk = ${JSON.stringify(token)};
           if (window.opener) {
-            window.opener.postMessage(msg, '*');
+            // Send multiple formats for compatibility with different CMS versions
+            try { window.opener.postMessage('authorization:github:success:' + tk, '*'); } catch(e) {}
+            try { window.opener.postMessage('authorization:github:success:' + JSON.stringify({ token: tk }), '*'); } catch(e) {}
+            try { window.opener.postMessage('authorization:github:success:' + JSON.stringify({ token: tk, provider: 'github' }), '*'); } catch(e) {}
             window.close();
           }
           // Fallback: redirect back to admin in case popup cannot close or opened in same tab
