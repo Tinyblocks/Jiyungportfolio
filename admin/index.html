@@ -7,9 +7,44 @@
     <link rel="stylesheet" href="../styles.css">
   </head>
   <body>
-    <script>window.CMS_CONFIG_PATH = '/admin/config.yml';</script>
+    <script>window.CMS_MANUAL_INIT = true;</script>
     <script src="https://unpkg.com/decap-cms@3.8.3/dist/decap-cms.js"></script>
     <script src="https://unpkg.com/decap-cms-media-library-uploadcare@^3.0.0/dist/decap-cms-media-library-uploadcare.js"></script>
-    <!-- Let Decap CMS load /admin/config.yml (GitHub backend) -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function(){
+        if (!window.CMS) return;
+        CMS.init({
+          config: {
+            backend: { name: 'github', repo: 'Tinyblocks/Jiyungportfolio', branch: 'main', base_url: 'https://jiyungleee.com', auth_endpoint: '/api/auth' },
+            media_folder: 'images',
+            public_folder: '/images',
+            publish_mode: 'editorial_workflow',
+            local_backend: false,
+            media_library: { name: 'uploadcare', config: { publicKey: 'demopublickey' } },
+            collections: [
+              {
+                name: 'projects',
+                label: 'Projects',
+                folder: 'src/projects',
+                create: true,
+                slug: '{{slug}}',
+                format: 'frontmatter',
+                fields: [
+                  { label: 'Title', name: 'title', widget: 'string' },
+                  { label: 'Year', name: 'year', widget: 'number', value_type: 'int', min: 1900, max: 2100 },
+                  { label: 'Category', name: 'category', widget: 'select', options: ['personal','client','exhibition'], default: 'personal' },
+                  { label: 'Cover Image', name: 'cover', widget: 'image' },
+                  { label: 'Gallery Images', name: 'images', widget: 'list', field: { label: 'Image', name: 'image', widget: 'image' } },
+                  { label: 'Or gallery folder glob (e.g. /images/Seashells/*.{png,jpg})', name: 'imagesFolder', widget: 'string', required: false, hint: 'Use this to auto-include all images from a folder.' },
+                  { label: 'Description', name: 'body', widget: 'markdown' },
+                  { label: 'Layout', name: 'layout', widget: 'hidden', default: 'layouts/project.njk' },
+                  { label: 'Permalink', name: 'permalink', widget: 'hidden', default: '/projects/{{slug}}/index.html' }
+                ]
+              }
+            ]
+          }
+        });
+      });
+    </script>
   </body>
 </html>
