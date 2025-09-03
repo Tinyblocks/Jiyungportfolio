@@ -1,6 +1,6 @@
 module.exports = async (req, res) => {
   try {
-    const clientId = process.env.GITHUB_CLIENT_ID;
+    const clientId = (process.env.GITHUB_CLIENT_ID || "").trim();
     if (!clientId) {
       res.statusCode = 500;
       res.setHeader('content-type', 'text/plain');

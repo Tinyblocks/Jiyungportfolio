@@ -7,7 +7,7 @@ backend:
 media_folder: "images"
 public_folder: "/images"
 publish_mode: editorial_workflow
-local_backend: true
+local_backend: false
 media_library:
   name: uploadcare
   config:
