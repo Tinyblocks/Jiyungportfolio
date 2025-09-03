@@ -7,7 +7,8 @@
     <meta name="description" content="Portfolio of South Korean illustrator Jiyung Lee. Selected personal, client, and exhibition work.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-grotesk@400,500,600,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
     <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
   </head>
@@ -15,12 +16,16 @@
     <aside class="sidebar" aria-label="Site">
       <div class="sidebar__inner">
         <a class="brand" href="/">
-          <span class="brand__title">JIYUNG LEE</span>
+          <span class="brand__title">Jiyung Lee</span>
         </a>
+        <button class="menu-toggle" type="button" aria-label="Open menu" aria-controls="mobile-menu" aria-expanded="false">
+          <span class="sr-only">Menu</span>
+          <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
         <p class="tagline">is an illustrator, and<br>artist based in South<br>Korea.</p>
 
         <p style="margin:18px 0 6px"><a class="nav__link" href="/about.html">About</a></p>
-        <p class="contact"><a href="mailto:jiyungleeee@gmail.com">jiyungleeee@gmail.com</a></p>
+        <p class="contact"><a href="mailto:jiyungleee@gmail.com">jiyungleee@gmail.com</a></p>
 
         <hr class="rule">
 
@@ -30,15 +35,14 @@
           <a href="#" class="nav__section" data-filter="exhibition">Exhibition →</a>
         </nav>
 
-        <a class="social-icon" href="https://instagram.com/" target="_blank" rel="noopener" aria-label="Instagram">
+        <a class="social-icon" href="https://www.instagram.com/jiyungleee/" target="_blank" rel="noopener" aria-label="Instagram">
           <img src="/assets/instagram.svg" alt="" class="icon" />
         </a>
       </div>
     </aside>
 
     <main id="main" class="content" tabindex="-1">
-      <a href="/" class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg><span>Back</span></a>
-<h1 class="project__title">Enveloppe</h1>
+      <h1 class="project__title"><a href="/" class="title-back" aria-label="Back to gallery"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>Enveloppe</h1>
 <div class="project__meta">2024 · Client</div>
 
 
@@ -94,19 +98,80 @@
 </div>
 
 <script>
-  let currentSlide = 0;
-  const slides = Array.from(document.querySelectorAll('.carousel__item'));
-  const thumbs = document.querySelectorAll('.thumb');
   const rail = document.getElementById('carousel-rail');
+  const thumbs = document.querySelectorAll('.thumb');
   const nav = document.querySelector('.carousel__nav');
   const thumbsContainer = document.querySelector('.carousel__thumbs');
-  if (slides.length <= 1) { nav.classList.add('hidden'); thumbsContainer.classList.add('hidden'); }
-  function goToSlide(index){ currentSlide = index; const target = slides[index]; target?.scrollIntoView({behavior:'smooth', inline:'start'}); thumbs.forEach((t,i)=>t.classList.toggle('active', i===index)); }
-  function nextSlide(){ currentSlide=(currentSlide+1)%slides.length; goToSlide(currentSlide); }
-  function prevSlide(){ currentSlide=(currentSlide-1+slides.length)%slides.length; goToSlide(currentSlide); }
+
+  function slides(){ return Array.from(rail.querySelectorAll('.carousel__item')); }
+  (function setup(){
+    const s = slides();
+    if (s.length <= 1) { nav.classList.add('hidden'); thumbsContainer.classList.add('hidden'); return; }
+    const first = s[0].cloneNode(true);
+    const last = s[s.length - 1].cloneNode(true);
+    rail.appendChild(first);
+    rail.insertBefore(last, s[0]);
+    // position to first real slide instantly
+    requestAnimationFrame(()=>{
+      const s2 = slides();
+      rail.scrollTo({ left: s2[1].offsetLeft, behavior: 'auto' });
+    });
+  })();
+
+  let rawIndex = 1; // includes leading clone
+  function updateThumbs(realIndex){ thumbs.forEach((t,i)=>t.classList.toggle('active', i===realIndex)); }
+  function goToRaw(i, behavior='smooth'){
+    const s = slides();
+    rawIndex = i;
+    const target = s[i];
+    if (!target) return;
+    rail.scrollTo({ left: target.offsetLeft, behavior });
+    const realCount = Math.max(0, s.length - 2);
+    const realIndex = Math.min(realCount - 1, Math.max(0, i - 1));
+    updateThumbs(realIndex);
+  }
+  function goToSlide(realIndex){ goToRaw(realIndex + 1, 'smooth'); }
+  function nextSlide(){
+    const s = slides();
+    const lastRealRaw = s.length - 2;
+    const onLastReal = rawIndex === lastRealRaw;
+    goToRaw(rawIndex + 1, 'smooth');
+    if (onLastReal) setTimeout(()=>goToRaw(1, 'auto'), 450);
+  }
+  function prevSlide(){
+    const onFirstReal = rawIndex === 1;
+    goToRaw(rawIndex - 1, 'smooth');
+    if (onFirstReal) setTimeout(()=>goToRaw(slides().length - 2, 'auto'), 450);
+  }
 </script>
 
     </main>
+
+    <div id="mobile-menu" class="mobile-menu" hidden>
+      <div class="mobile-menu__inner" role="dialog" aria-modal="true" aria-label="Site menu">
+        <div class="mobile-menu__header">
+          <span class="brand__title">Jiyung Lee</span>
+          <button class="menu-close" aria-label="Close menu" data-close-menu>
+            <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="mobile-menu__content">
+          <p class="tagline">is an illustrator, and artist based in South Korea.</p>
+          <p style="margin:18px 0 6px"><a class="nav__link" href="/about.html" data-close-menu>About</a></p>
+          <p class="contact"><a href="mailto:jiyungleee@gmail.com" data-close-menu>jiyungleee@gmail.com</a></p>
+          <hr class="rule">
+          <nav class="nav nav--stack" aria-label="Primary">
+            <a href="#all" class="nav__section" data-filter="all" data-close-menu>All work →</a>
+            <a href="#personal" class="nav__section" data-filter="personal" data-close-menu>Personal work →</a>
+            <a href="#client" class="nav__section" data-filter="client" data-close-menu>Client work →</a>
+            <a href="#exhibition" class="nav__section" data-filter="exhibition" data-close-menu>Exhibition →</a>
+          </nav>
+          <a class="social-icon" href="https://www.instagram.com/jiyungleee/" target="_blank" rel="noopener" aria-label="Instagram">
+            <img src="/assets/instagram.svg" alt="" class="icon" />
+          </a>
+        </div>
+      </div>
+    </div>
 
     <script src="/script.js" defer></script>
   </body>

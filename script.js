@@ -4,6 +4,8 @@
 const galleryEl = document.getElementById('gallery');
 const chips = document.querySelectorAll('.chip');
 const navLinks = document.querySelectorAll('[data-filter]');
+const menuToggle = document.querySelector('.menu-toggle');
+const mobileMenu = document.getElementById('mobile-menu');
 
 function render(filter = 'all') {
   if (!galleryEl) return;
@@ -33,20 +35,34 @@ chips.forEach(b => b.addEventListener('click', (e) => {
 }));
 
 navLinks.forEach(a => a.addEventListener('click', (e) => {
-  const f = e.currentTarget.dataset.filter;
-  if (location.pathname.endsWith('/about.html')) {
-    e.preventDefault();
-    location.href = `/${'#' + f}`; // go home with hash; home bootstraps from hash
+  const f = e.currentTarget.dataset.filter || 'all';
+  e.preventDefault();
+  const onHome = !!galleryEl; // gallery exists only on home
+  if (!onHome) {
+    location.href = f === 'all' ? '/' : `/#${f}`; // navigate home with hash
     return;
   }
-  e.preventDefault();
   setActive(f);
   render(f);
+  if (mobileMenu && !mobileMenu.hasAttribute('hidden')) closeMenu();
+  history.replaceState({}, '', f === 'all' ? '/' : `#${f}`);
 }));
 
 // Initial render – from hash if present
 const hash = (location.hash || '#all').replace('#','');
 setActive(hash);
 render(hash);
+
+// Mobile menu interactivity
+function openMenu(){ if(!mobileMenu) return; mobileMenu.removeAttribute('hidden'); document.body.style.overflow='hidden'; menuToggle?.setAttribute('aria-expanded','true'); }
+function closeMenu(){ if(!mobileMenu) return; mobileMenu.setAttribute('hidden',''); document.body.style.overflow=''; menuToggle?.setAttribute('aria-expanded','false'); }
+menuToggle?.addEventListener('click', ()=>{
+  const expanded = menuToggle.getAttribute('aria-expanded') === 'true';
+  expanded ? closeMenu() : openMenu();
+});
+mobileMenu?.addEventListener('click', (e)=>{
+  if (e.target === mobileMenu) closeMenu();
+});
+document.querySelectorAll('[data-close-menu]')?.forEach(el=>el.addEventListener('click', closeMenu));
 
 
