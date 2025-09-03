@@ -2,5 +2,8 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "buildCommand": "npm run build",
-  "outputDirectory": "_site"
+  "outputDirectory": "_site",
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1.js" }
+  ]
 }
