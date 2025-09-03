@@ -39,7 +39,8 @@ module.exports = async (req, res) => {
     const html = `<!doctype html><html><body>
       <script>
         (function(){
-          var msg = 'authorization:github:success:' + JSON.stringify({token: ${JSON.stringify(token)}});
+          var payload = { token: ${JSON.stringify(token)}, provider: 'github' };
+          var msg = 'authorization:github:success:' + JSON.stringify(payload);
           if (window.opener) {
             window.opener.postMessage(msg, '*');
             window.close();
