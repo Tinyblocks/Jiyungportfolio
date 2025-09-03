@@ -1,54 +1,57 @@
-const https = require('https');
-
-function postForm(url, data) {
-  return new Promise((resolve, reject) => {
-    const payload = new URLSearchParams(data).toString();
-    const u = new URL(url);
-    const req = https.request({
-      method: 'POST',
-      hostname: u.hostname,
-      path: u.pathname + u.search,
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded',
-        'accept': 'application/json',
-        'content-length': Buffer.byteLength(payload)
-      }
-    }, (res) => {
-      let body = '';
-      res.on('data', (c) => (body += c));
-      res.on('end', () => resolve({ status: res.statusCode, body }));
-    });
-    req.on('error', reject);
-    req.write(payload);
-    req.end();
-  });
-}
-
 module.exports = async (req, res) => {
   try {
-    const clientId = process.env.GITHUB_CLIENT_ID;
-    const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+    const clientId = (process.env.GITHUB_CLIENT_ID || '').trim();
+    const clientSecret = (process.env.GITHUB_CLIENT_SECRET || '').trim();
     if (!clientId || !clientSecret) {
       res.statusCode = 500;
       res.setHeader('content-type', 'text/plain');
       return res.end('Missing GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET');
     }
 
-    const code = new URL(req.url, 'https://dummy').searchParams.get('code');
+    const url = new URL(req.url, 'https://placeholder');
+    const code = url.searchParams.get('code');
     if (!code) {
       res.statusCode = 400;
       res.setHeader('content-type', 'text/plain');
       return res.end('Missing code');
     }
 
-    const tokenResp = await postForm('https://github.com/login/oauth/access_token', {
-      client_id: clientId,
-      client_secret: clientSecret,
-      code
+    const ghResp = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+        'accept': 'application/json'
+      },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code
+      })
     });
-    res.statusCode = tokenResp.status || 200;
-    res.setHeader('content-type', 'application/json');
-    res.end(tokenResp.body);
+    const json = await ghResp.json();
+    if (!ghResp.ok || !json.access_token) {
+      res.statusCode = ghResp.status || 500;
+      res.setHeader('content-type', 'application/json');
+      return res.end(JSON.stringify(json));
+    }
+
+    const token = json.access_token;
+    const html = `<!doctype html><html><body>
+      <script>
+        (function(){
+          var msg = 'authorization:github:success:' + JSON.stringify({token: ${JSON.stringify(token)}});
+          if (window.opener) {
+            window.opener.postMessage(msg, '*');
+            window.close();
+          } else {
+            document.body.innerText = 'Authentication complete. You can close this window.';
+          }
+        })();
+      </script>
+    </body></html>`;
+    res.statusCode = 200;
+    res.setHeader('content-type', 'text/html; charset=utf-8');
+    res.end(html);
   } catch (err) {
     res.statusCode = 500;
     res.setHeader('content-type', 'text/plain');
