@@ -43,9 +43,9 @@ module.exports = async (req, res) => {
           if (window.opener) {
             window.opener.postMessage(msg, '*');
             window.close();
-          } else {
-            document.body.innerText = 'Authentication complete. You can close this window.';
           }
+          // Fallback: redirect back to admin in case popup cannot close or opened in same tab
+          setTimeout(function(){ try{ window.location.href = '/admin/'; }catch(e){} }, 250);
         })();
       </script>
     </body></html>`;
