@@ -25,3 +25,4 @@ collections:
       - { label: "Description", name: "body", widget: "markdown" }
       - { label: "Layout", name: "layout", widget: "hidden", default: "layouts/project.njk" }
       - { label: "Permalink", name: "permalink", widget: "hidden", default: "/projects/{{slug}}/index.html" }
+      - { label: "Tags", name: "tags", widget: "hidden", default: ["projects"] }
