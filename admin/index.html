@@ -4,47 +4,75 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Content Manager</title>
+    <base href="/admin/">
     <link rel="stylesheet" href="../styles.css">
   </head>
   <body>
-    <script>window.CMS_MANUAL_INIT = true;</script>
-    <script src="https://unpkg.com/decap-cms@3.8.3/dist/decap-cms.js"></script>
-    <script src="https://unpkg.com/decap-cms-media-library-uploadcare@^3.0.0/dist/decap-cms-media-library-uploadcare.js"></script>
     <script>
-      document.addEventListener('DOMContentLoaded', function(){
-        if (!window.CMS) return;
-        CMS.init({
-          config: {
-            backend: { name: 'github', repo: 'Tinyblocks/Jiyungportfolio', branch: 'main', base_url: 'https://jiyungleee.com', auth_endpoint: '/api/auth' },
-            media_folder: 'images',
-            public_folder: '/images',
-            publish_mode: 'editorial_workflow',
-            local_backend: false,
-            media_library: { name: 'uploadcare', config: { publicKey: 'demopublickey' } },
-            collections: [
-              {
-                name: 'projects',
-                label: 'Projects',
-                folder: 'src/projects',
-                create: true,
-                slug: '{{slug}}',
-                format: 'frontmatter',
-                fields: [
-                  { label: 'Title', name: 'title', widget: 'string' },
-                  { label: 'Year', name: 'year', widget: 'number', value_type: 'int', min: 1900, max: 2100 },
-                  { label: 'Category', name: 'category', widget: 'select', options: ['personal','client','exhibition'], default: 'personal' },
-                  { label: 'Cover Image', name: 'cover', widget: 'image' },
-                  { label: 'Gallery Images', name: 'images', widget: 'list', field: { label: 'Image', name: 'image', widget: 'image' } },
-                  { label: 'Or gallery folder glob (e.g. /images/Seashells/*.{png,jpg})', name: 'imagesFolder', widget: 'string', required: false, hint: 'Use this to auto-include all images from a folder.' },
-                  { label: 'Description', name: 'body', widget: 'markdown' },
-                  { label: 'Layout', name: 'layout', widget: 'hidden', default: 'layouts/project.njk' },
-                  { label: 'Permalink', name: 'permalink', widget: 'hidden', default: '/projects/{{slug}}/index.html' }
-                ]
-              }
-            ]
+      window.CMS_CONFIG_PATH = '/admin/config.yml';
+      window.CMS_MANUAL_INIT = true; // ensure we initialize exactly once
+    </script>
+    <script defer src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script src="https://unpkg.com/decap-cms@^3.8.5/dist/decap-cms.js"></script>
+    
+    <script>
+      // Let Decap initialize itself once using window.CMS_CONFIG_PATH
+      // Capture OAuth token from popup as extra fallback
+      window.addEventListener('message', function(ev){
+        try {
+          var msg = ev && ev.data;
+          if (typeof msg === 'string' && msg.indexOf('authorization:github:success:') === 0) {
+            var payload = msg.substring('authorization:github:success:'.length);
+            var token = payload;
+            try { var parsed = JSON.parse(payload); if (parsed && parsed.token) token = parsed.token; } catch(e) {}
+            if (token) {
+              try { localStorage.setItem('decap:github_token', token); } catch(e) {}
+              try { localStorage.setItem('netlify-cms-user', JSON.stringify({ token: token, provider: 'github', backendName: 'github' })); } catch(e) {}
+              try { window.location.reload(); } catch(e) {}
+            }
           }
-        });
+        } catch (e) {}
       });
+      // surface errors for blank screens
+      window.addEventListener('error', function(e){
+        try{ console.error('Admin runtime error:', e.error || e.message || e); }catch(_){}
+      });
+      window.addEventListener('unhandledrejection', function(e){
+        try{ console.error('Admin unhandledrejection:', e.reason || e); }catch(_){}
+      });
+      // Hook Netlify Identity login then init CMS
+      (function(){
+        var initialized = false;
+        function maybeInitCMS(){
+          if (initialized) return;
+          try {
+            if (window.CMS && typeof window.CMS.init === 'function') {
+              window.CMS.init();
+              initialized = true;
+            }
+          } catch(_) { }
+          try {
+            if (localStorage.getItem('netlify-cms-user')) {
+              if (!location.hash || location.hash === '#/') {
+                location.hash = '#/collections/projects';
+              }
+            }
+          } catch(_) { }
+        }
+        function onReady(){
+          try {
+            var idw = window.netlifyIdentity;
+            if (idw) {
+              idw.on('init', function(user){ if (!user) idw.on('login', function(){ window.location.reload(); }); });
+            }
+          } catch(_) { }
+          // Attempt init now and once more after the CMS script settles
+          maybeInitCMS();
+          setTimeout(maybeInitCMS, 0);
+        }
+        if (document.readyState === 'complete' || document.readyState === 'interactive') onReady();
+        else document.addEventListener('DOMContentLoaded', onReady);
+      })();
     </script>
   </body>
 </html>
