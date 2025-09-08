@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Content Manager</title>
+    <base href="/admin/">
+    <link rel="stylesheet" href="../styles.css">
+  </head>
+  <body>
+    <script>
+      window.CMS_CONFIG_PATH = '/admin/config.yml';
+      window.CMS_MANUAL_INIT = true;
+    </script>
+    <script defer src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <script src="https://unpkg.com/decap-cms@^3.8.5/dist/decap-cms.js"></script>
+    <script>
+      (function(){
+        var initialized = false;
+        function maybeInitCMS(){
+          if (initialized) return;
+          try {
+            if (window.CMS && typeof window.CMS.init === 'function') {
+              window.CMS.init();
+              initialized = true;
+            }
+          } catch(_) { }
+          try {
+            if (localStorage.getItem('netlify-cms-user')) {
+              if (!location.hash || location.hash === '#/') {
+                location.hash = '#/collections/projects';
+              }
+            }
+          } catch(_) { }
+        }
+        function onReady(){
+          try {
+            var idw = window.netlifyIdentity;
+            if (idw) {
+              idw.on('init', function(user){ if (!user) idw.on('login', function(){ window.location.reload(); }); });
+            }
+          } catch(_) { }
+          maybeInitCMS();
+          setTimeout(maybeInitCMS, 0);
+        }
+        if (document.readyState === 'complete' || document.readyState === 'interactive') onReady();
+        else document.addEventListener('DOMContentLoaded', onReady);
+      })();
+    </script>
+  </body>
+  </html>
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Content Manager</title>
+    
+    
+    <base href="/admin/">
+  </head>
+  <body>
+    <div id="nc-root"></div>
+    <script>window.CMS_MANUAL_INIT = true; window.CMS_CONFIG_PATH = '/admin/config.yml';</script>
+    <script defer src="https://identity.netlify.com/v1/netlify-identity-widget.js" onload="try{window.netlifyIdentity&&window.netlifyIdentity.init()}catch(e){}"></script>
+    <script id="decap-cms-script" src="/admin/decap-cms.js"></script>
+    <script>
+      (function(){
+        var cmsInitialized = false;
+        function initCMS(){
+          if (cmsInitialized) return;
+          try {
+            if (window.CMS && typeof window.CMS.init === 'function') {
+              cmsInitialized = true;
+              console.log('[admin] CMS.init()');
+              window.CMS.init();
+            }
+          } catch(err){ console.error('[admin] CMS.init error', err); }
+        }
+        function onReady(){
+          try {
+            var idw = window.netlifyIdentity;
+            if (idw) { idw.on('login', function(){ try{ window.location.reload(); }catch(_){} }); }
+          } catch(_){ }
+          // sanity check CMS presence and config reachability
+          (function waitForCMS(start){
+            if (!start) start = Date.now();
+            if (window.CMS && typeof window.CMS.init === 'function') { initCMS(); return; }
+            if (Date.now() - start > 8000) { console.error('[admin] CMS failed to load'); return; }
+            setTimeout(function(){ waitForCMS(start); }, 150);
+          })();
+          try {
+            fetch('/admin/config.yml', { cache: 'no-store' })
+              .then(function(r){ console.log('[admin] config.yml status', r.status); return r.text(); })
+              .then(function(t){ console.log('[admin] config.yml length', t && t.length); })
+              .catch(function(e){ console.error('[admin] fetch config.yml failed', e); });
+          } catch(e){ console.error('[admin] config fetch error', e); }
+        }
+        // surface errors for debugging blank screens
+        window.addEventListener('error', function(e){ try{ console.error('Admin runtime error:', e.error || e.message || e); }catch(_){} });
+        window.addEventListener('unhandledrejection', function(e){ try{ console.error('Admin unhandledrejection:', e.reason || e); }catch(_){} });
+        if(document.readyState === 'complete' || document.readyState === 'interactive') onReady();
+        else document.addEventListener('DOMContentLoaded', onReady);
+      })();
+    </script>
+  </body>
+</html>
