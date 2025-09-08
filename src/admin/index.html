@@ -8,14 +8,17 @@
     <link rel="stylesheet" href="../styles.css">
   </head>
   <body>
+    <div id="nc-root"></div>
     <script>
       window.CMS_CONFIG_PATH = '/admin/config.yml';
       window.CMS_MANUAL_INIT = true;
     </script>
     <script defer src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-    <script src="https://unpkg.com/decap-cms@^3.8.5/dist/decap-cms.js"></script>
+    <script id="decap-cms-script" src="/admin/decap-cms.js"></script>
     <script>
       (function(){
+        function log(){ try{ console.log.apply(console, arguments); }catch(_){} }
+        function logErr(){ try{ console.error.apply(console, arguments); }catch(_){} }
         var initialized = false;
         function maybeInitCMS(){
           if (initialized) return;
@@ -23,26 +26,31 @@
             if (window.CMS && typeof window.CMS.init === 'function') {
               window.CMS.init();
               initialized = true;
+              log('[admin] CMS.init() ok');
             }
-          } catch(_) { }
+          } catch(err) { logErr('[admin] CMS.init error', err); }
           try {
             if (localStorage.getItem('netlify-cms-user')) {
               if (!location.hash || location.hash === '#/') {
                 location.hash = '#/collections/projects';
               }
             }
-          } catch(_) { }
+          } catch(err) { logErr('[admin] nav hash error', err); }
         }
         function onReady(){
           try {
             var idw = window.netlifyIdentity;
-            if (idw) {
-              idw.on('init', function(user){ if (!user) idw.on('login', function(){ window.location.reload(); }); });
-            }
-          } catch(_) { }
+            if (idw) { idw.on('login', function(){ try{ window.location.reload(); }catch(_){} }); }
+          } catch(err){ logErr('[admin] identity init error', err); }
+          // ensure script loaded
+          var s = document.getElementById('decap-cms-script');
+          if (!s) logErr('[admin] decap-cms script tag missing');
           maybeInitCMS();
           setTimeout(maybeInitCMS, 0);
+          setTimeout(maybeInitCMS, 300);
         }
+        window.addEventListener('error', function(e){ logErr('Admin runtime error:', e.error || e.message || e); });
+        window.addEventListener('unhandledrejection', function(e){ logErr('Admin unhandledrejection:', e.reason || e); });
         if (document.readyState === 'complete' || document.readyState === 'interactive') onReady();
         else document.addEventListener('DOMContentLoaded', onReady);
       })();
