@@ -13,7 +13,6 @@
       window.CMS_CONFIG_PATH = '/admin/config.yml';
       window.CMS_MANUAL_INIT = true;
     </script>
-    <script defer src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script id="decap-cms-script" src="/admin/decap-cms.js"></script>
     <script>
       (function(){
@@ -25,7 +24,6 @@
           try {
             if (window.CMS && typeof window.CMS.init === 'function') {
               window.CMS.init();
-              // Force GitHub backend login button if needed
               try {
                 var cfg = window.CMS.getConfig();
                 if (cfg && cfg.backend && cfg.backend.name === 'github') {
@@ -45,11 +43,6 @@
           } catch(err) { logErr('[admin] nav hash error', err); }
         }
         function onReady(){
-          try {
-            var idw = window.netlifyIdentity;
-            if (idw) { idw.on('login', function(){ try{ window.location.reload(); }catch(_){} }); }
-          } catch(err){ logErr('[admin] identity init error', err); }
-          // ensure script loaded
           var s = document.getElementById('decap-cms-script');
           if (!s) logErr('[admin] decap-cms script tag missing');
           maybeInitCMS();
