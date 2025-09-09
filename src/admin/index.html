@@ -13,7 +13,6 @@
       window.CMS_CONFIG_PATH = '/admin/config.yml';
       window.CMS_MANUAL_INIT = true;
     </script>
-    <script defer src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <script id="decap-cms-script" src="/admin/decap-cms.js"></script>
     <script>
       (function(){
@@ -25,6 +24,13 @@
           try {
             if (window.CMS && typeof window.CMS.init === 'function') {
               window.CMS.init();
+              // Force GitHub backend login button if needed
+              try {
+                var cfg = window.CMS.getConfig();
+                if (cfg && cfg.backend && cfg.backend.name === 'github') {
+                  console.log('[admin] Using GitHub backend');
+                }
+              } catch(e) { }
               initialized = true;
               log('[admin] CMS.init() ok');
             }
