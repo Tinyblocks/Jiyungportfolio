@@ -6,8 +6,8 @@
     "dev": "npx @11ty/eleventy --serve",
     "build": "npx @11ty/eleventy && node -e \"const fs=require('fs');fs.copyFileSync('node_modules/decap-cms/dist/decap-cms.js','_site/admin/decap-cms.js');\"",
     "clean": "rm -rf _site",
-    "vercel:link": "sh -c 'export $(grep -E \"^[A-Z_]+=\" .env.local 2>/dev/null | xargs) && npx vercel link --yes --project jiyung-portfolio --token ${VERCEL_TOKEN}'",
-    "vercel:deploy": "sh -c 'export $(grep -E \"^[A-Z_]+=\" .env.local 2>/dev/null | xargs) && npx vercel --prod --yes --token ${VERCEL_TOKEN}'"
+    "vercel:link": "echo 'disabled'",
+    "vercel:deploy": "echo 'disabled'"
   },
   "devDependencies": {
     "@11ty/eleventy": "^3.0.0",
