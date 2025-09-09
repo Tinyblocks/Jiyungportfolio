@@ -1,6 +1,9 @@
 backend:
-  name: git-gateway
+  name: github
+  repo: Tinyblocks/Jiyungportfolio
   branch: main
+  base_url: "/"
+  auth_endpoint: "/api/auth"
 media_folder: "images"
 public_folder: "/images"
 publish_mode: simple
