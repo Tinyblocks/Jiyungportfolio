@@ -60,7 +60,7 @@
           try {
             if (window.CMS && typeof window.CMS.init === 'function') {
               if (window.CMS_CONFIG) {
-                window.CMS.init({ config: window.CMS_CONFIG });
+                window.CMS.init({ config: window.CMS_CONFIG, load_config_file: false });
               } else {
                 window.CMS.init();
               }
@@ -78,6 +78,12 @@
           // purge any stale Netlify Identity / Git Gateway state so GitHub implicit auth is used
           try { if (localStorage) localStorage.clear(); } catch(_) {}
           try { if (sessionStorage) sessionStorage.clear(); } catch(_) {}
+          try {
+            // Strip any query/hash parameters that could force a different backend
+            if (location.search || /backend=/.test(location.hash)) {
+              history.replaceState(null, '', '/admin/');
+            }
+          } catch(_) {}
           // ensure script loaded
           var s = document.getElementById('decap-cms-script');
           if (!s) logErr('[admin] decap-cms script tag missing');
