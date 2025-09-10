@@ -10,8 +10,42 @@
   <body>
     <div id="nc-root"></div>
     <script>
-      window.CMS_CONFIG_PATH = '/admin/config.yml';
+      // Use embedded config to force GitHub implicit auth (avoid any stale cached YAML)
       window.CMS_MANUAL_INIT = true;
+      window.CMS_CONFIG = {
+        backend: {
+          name: 'github',
+          repo: 'Tinyblocks/Jiyungportfolio',
+          branch: 'main',
+          auth_type: 'implicit',
+          app_id: 'Ov23lirFziJiwYr1epSi'
+        },
+        media_folder: 'images',
+        public_folder: '/images',
+        publish_mode: 'simple',
+        local_backend: false,
+        collections: [
+          {
+            name: 'projects',
+            label: 'Projects',
+            folder: 'src/projects',
+            create: true,
+            slug: '{{slug}}',
+            format: 'frontmatter',
+            fields: [
+              { label: 'Title', name: 'title', widget: 'string' },
+              { label: 'Year', name: 'year', widget: 'number', value_type: 'int', min: 1900, max: 2100 },
+              { label: 'Category', name: 'category', widget: 'select', options: ['personal', 'client', 'exhibition'], default: 'personal' },
+              { label: 'Cover Image', name: 'cover', widget: 'image' },
+              { label: 'Gallery Images', name: 'images', widget: 'list', field: { label: 'Image', name: 'image', widget: 'image' } },
+              { label: 'Or gallery folder glob (e.g. /images/Seashells/*.{png,jpg})', name: 'imagesFolder', widget: 'string', required: false, hint: 'Use this to auto-include all images from a folder.' },
+              { label: 'Description', name: 'body', widget: 'markdown' },
+              { label: 'Layout', name: 'layout', widget: 'hidden', default: 'layouts/project.njk' },
+              { label: 'Permalink', name: 'permalink', widget: 'hidden', default: '/projects/{{slug}}/index.html' }
+            ]
+          }
+        ]
+      };
     </script>
     <script id="decap-cms-script" src="/admin/decap-cms.js"></script>
     <script>
@@ -23,16 +57,18 @@
           if (initialized) return;
           try {
             if (window.CMS && typeof window.CMS.init === 'function') {
-              window.CMS.init();
+              if (window.CMS_CONFIG) {
+                window.CMS.init({ config: window.CMS_CONFIG });
+              } else {
+                window.CMS.init();
+              }
               initialized = true;
               log('[admin] CMS.init() ok');
             }
           } catch(err) { logErr('[admin] CMS.init error', err); }
           try {
-            if (localStorage.getItem('netlify-cms-user')) {
-              if (!location.hash || location.hash === '#/') {
-                location.hash = '#/collections/projects';
-              }
+            if (!location.hash || location.hash === '#/') {
+              location.hash = '#/collections/projects';
             }
           } catch(err) { logErr('[admin] nav hash error', err); }
         }
