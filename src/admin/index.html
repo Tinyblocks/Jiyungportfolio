@@ -24,12 +24,6 @@
           try {
             if (window.CMS && typeof window.CMS.init === 'function') {
               window.CMS.init();
-              try {
-                var cfg = window.CMS.getConfig();
-                if (cfg && cfg.backend && cfg.backend.name === 'github') {
-                  console.log('[admin] Using GitHub backend');
-                }
-              } catch(e) { }
               initialized = true;
               log('[admin] CMS.init() ok');
             }
@@ -43,6 +37,7 @@
           } catch(err) { logErr('[admin] nav hash error', err); }
         }
         function onReady(){
+          // ensure script loaded
           var s = document.getElementById('decap-cms-script');
           if (!s) logErr('[admin] decap-cms script tag missing');
           maybeInitCMS();
