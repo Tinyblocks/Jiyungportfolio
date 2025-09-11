@@ -4,12 +4,56 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Content Manager</title>
+    <base href="/admin/">
     <link rel="stylesheet" href="../styles.css">
   </head>
   <body>
-    <script>window.CMS_CONFIG_PATH = 'config.yml';</script>
-    <script src="https://unpkg.com/decap-cms@3.8.3/dist/decap-cms.js"></script>
-    <script src="https://unpkg.com/decap-cms-media-library-uploadcare@^3.0.0/dist/decap-cms-media-library-uploadcare.js"></script>
-    <!-- Let Decap CMS load /admin/config.yml (GitHub backend) -->
+    <div id="nc-root"></div>
+    <script>
+      window.CMS_CONFIG_PATH = '/admin/config.yml';
+      window.CMS_MANUAL_INIT = true;
+    </script>
+    <script id="decap-cms-script" src="/admin/decap-cms.js"></script>
+    <script>
+      (function(){
+        function log(){ try{ console.log.apply(console, arguments); }catch(_){} }
+        function logErr(){ try{ console.error.apply(console, arguments); }catch(_){} }
+        var initialized = false;
+        function maybeInitCMS(){
+          if (initialized) return;
+          try {
+            if (window.CMS && typeof window.CMS.init === 'function') {
+              window.CMS.init();
+              try {
+                var cfg = window.CMS.getConfig();
+                if (cfg && cfg.backend && cfg.backend.name === 'github') {
+                  console.log('[admin] Using GitHub backend');
+                }
+              } catch(e) { }
+              initialized = true;
+              log('[admin] CMS.init() ok');
+            }
+          } catch(err) { logErr('[admin] CMS.init error', err); }
+          try {
+            if (localStorage.getItem('netlify-cms-user')) {
+              if (!location.hash || location.hash === '#/') {
+                location.hash = '#/collections/projects';
+              }
+            }
+          } catch(err) { logErr('[admin] nav hash error', err); }
+        }
+        function onReady(){
+          var s = document.getElementById('decap-cms-script');
+          if (!s) logErr('[admin] decap-cms script tag missing');
+          maybeInitCMS();
+          setTimeout(maybeInitCMS, 0);
+          setTimeout(maybeInitCMS, 300);
+        }
+        window.addEventListener('error', function(e){ logErr('Admin runtime error:', e.error || e.message || e); });
+        window.addEventListener('unhandledrejection', function(e){ logErr('Admin unhandledrejection:', e.reason || e); });
+        if (document.readyState === 'complete' || document.readyState === 'interactive') onReady();
+        else document.addEventListener('DOMContentLoaded', onReady);
+      })();
+    </script>
   </body>
-</html>
+  </html>
