@@ -10,10 +10,63 @@
   <body>
     <div id="nc-root"></div>
     <script>
-      window.CMS_CONFIG_PATH = '/admin/config.yml';
+      // Use embedded config to force GitHub implicit auth (avoid any stale cached YAML)
       window.CMS_MANUAL_INIT = true;
+      window.CMS_CONFIG = {
+        backend: {
+          name: 'github',
+          repo: 'Tinyblocks/Jiyungportfolio',
+          branch: 'main',
+          base_url: '/api',
+          auth_endpoint: 'auth'
+        },
+        media_folder: 'images',
+        public_folder: '/images',
+        publish_mode: 'simple',
+        local_backend: false,
+        collections: [
+          {
+            name: 'projects',
+            label: 'Projects',
+            folder: 'src/projects',
+            create: true,
+            slug: ' + ',
+            format: 'frontmatter',
+            fields: [
+              { label: 'Title', name: 'title', widget: 'string' },
+              { label: 'Year', name: 'year', widget: 'number', value_type: 'int', min: 1900, max: 2100 },
+              { label: 'Category', name: 'category', widget: 'select', options: ['personal', 'client', 'exhibition'], default: 'personal' },
+              { label: 'Cover Image', name: 'cover', widget: 'image' },
+              { label: 'Gallery Images', name: 'images', widget: 'list', field: { label: 'Image', name: 'image', widget: 'image' } },
+              { label: 'Or gallery folder glob (e.g. /images/Seashells/*.{png,jpg})', name: 'imagesFolder', widget: 'string', required: false, hint: 'Use this to auto-include all images from a folder.' },
+              { label: 'Description', name: 'body', widget: 'markdown' },
+              { label: 'Layout', name: 'layout', widget: 'hidden', default: 'layouts/project.njk' },
+              { label: 'Permalink', name: 'permalink', widget: 'hidden', default: '/projects/' + ' + ' + '/index.html' }
+            ]
+          }
+        ]
+      };
     </script>
-    <script id="decap-cms-script" src="/admin/decap-cms.js"></script>
+    <script>
+      // Pre-init bridge: ensure Decap sees a valid token at bootstrap time
+      (function(){
+        function writeUserFromToken(token){
+          if (!token) return false;
+          var userVal = JSON.stringify({ token: token, provider: 'github', backendName: 'github' });
+          // Decap 3.8+ expects this key
+          try { localStorage.setItem('decap-cms-user', userVal); } catch(_) {}
+          try { localStorage.setItem('netlify-cms-user', userVal); } catch(_) {}
+          try { localStorage.setItem('netlify-cms.user', userVal); } catch(_) {}
+          return true;
+        }
+        try {
+          var tokenCandidate = localStorage.getItem('decap:github_token') || localStorage.getItem('netlify-cms-auth');
+          var hasUserKey = !!(localStorage.getItem('decap-cms-user') || localStorage.getItem('netlify-cms-user') || localStorage.getItem('netlify-cms.user'));
+          if (tokenCandidate && !hasUserKey) { writeUserFromToken(tokenCandidate); }
+        } catch(_) {}
+      })();
+    </script>
+    <script id="decap-cms-script" src="/admin/decap-cms.js?v=20250910"></script>
     <script>
       (function(){
         function log(){ try{ console.log.apply(console, arguments); }catch(_){} }
@@ -23,32 +76,86 @@
           if (initialized) return;
           try {
             if (window.CMS && typeof window.CMS.init === 'function') {
-              window.CMS.init();
-              try {
-                var cfg = window.CMS.getConfig();
-                if (cfg && cfg.backend && cfg.backend.name === 'github') {
-                  console.log('[admin] Using GitHub backend');
-                }
-              } catch(e) { }
+              if (window.CMS_CONFIG) {
+                window.CMS.init({ config: window.CMS_CONFIG, load_config_file: false });
+              } else {
+                window.CMS.init();
+              }
               initialized = true;
               log('[admin] CMS.init() ok');
             }
           } catch(err) { logErr('[admin] CMS.init error', err); }
           try {
-            if (localStorage.getItem('netlify-cms-user')) {
-              if (!location.hash || location.hash === '#/') {
-                location.hash = '#/collections/projects';
-              }
+            if (!location.hash || location.hash === '#/') {
+              location.hash = '#/collections/projects';
             }
           } catch(err) { logErr('[admin] nav hash error', err); }
         }
         function onReady(){
+          // Do not clear storage here; the OAuth callback stores the token in localStorage
+          try {
+            // Strip any query/hash parameters that could force a different backend
+            if (location.search || /backend=/.test(location.hash)) {
+              history.replaceState(null, '', '/admin/');
+            }
+          } catch(_) {}
+          // Immediate auto-login bridge: create netlify-cms-user if token exists, then reload once
+          try {
+            var hasUserKey = !!(localStorage.getItem('decap-cms-user') || localStorage.getItem('netlify-cms-user') || localStorage.getItem('netlify-cms.user'));
+            var tokenCandidate = localStorage.getItem('decap:github_token') || localStorage.getItem('netlify-cms-auth');
+            var didReload = sessionStorage.getItem('admin:didReload') === '1';
+            if (!hasUserKey && tokenCandidate && !didReload) {
+              var val = JSON.stringify({ token: tokenCandidate, provider: 'github', backendName: 'github' });
+              try { localStorage.setItem('decap-cms-user', val); } catch(_) {}
+              try { localStorage.setItem('netlify-cms-user', val); } catch(_) {}
+              try { localStorage.setItem('netlify-cms.user', val); } catch(_) {}
+              try { console.log('[admin] created netlify-cms-user from token; reloading'); } catch(_) {}
+              try { sessionStorage.setItem('admin:didReload','1'); } catch(_) {}
+              try { location.reload(); return; } catch(_) {}
+            }
+          } catch(_) {}
+          // ensure script loaded
           var s = document.getElementById('decap-cms-script');
           if (!s) logErr('[admin] decap-cms script tag missing');
+          // Listen for OAuth popup messages and persist token immediately
+          try {
+            window.addEventListener('message', function(e){
+              try {
+                var data = e && e.data;
+                var token = null;
+                if (typeof data === 'string' && data.indexOf('authorization:github:success:') === 0) {
+                  token = data.replace('authorization:github:success:', '');
+                } else if (data && typeof data === 'string') {
+                  try { var maybe = JSON.parse(data); if (maybe && maybe.token) token = maybe.token; } catch(_) {}
+                } else if (data && typeof data === 'object' && data.token) {
+                  token = data.token;
+                }
+                if (token) {
+                  var userVal = JSON.stringify({ token: token, provider: 'github', backendName: 'github' });
+                  try { localStorage.setItem('decap-cms-user', userVal); } catch(_) {}
+                  try { localStorage.setItem('netlify-cms-user', userVal); } catch(_) {}
+                  try { localStorage.setItem('netlify-cms.user', userVal); } catch(_) {}
+                  try { localStorage.setItem('decap:github_token', token); } catch(_) {}
+                  try { console.log('[admin] message captured; token saved; reloading'); } catch(_) {}
+                  try { location.reload(); } catch(_) { }
+                }
+              } catch(_) {}
+            });
+          } catch(_) {}
           maybeInitCMS();
           setTimeout(maybeInitCMS, 0);
           setTimeout(maybeInitCMS, 300);
+          // Avoid any additional polling or reloads that can cause loops
         }
+        // If the OAuth popup writes the token, react immediately
+        try {
+          window.addEventListener('storage', function(e){
+            if (e && (e.key === 'decap-cms-user' || e.key === 'netlify-cms-user' || e.key === 'decap:github_token' || e.key === 'netlify-cms.user') && e.newValue) {
+              try { maybeInitCMS(); } catch(_) {}
+            }
+          });
+        } catch(_) {}
+        // Remove emit/poll helpers to prevent reload loops
         window.addEventListener('error', function(e){ logErr('Admin runtime error:', e.error || e.message || e); });
         window.addEventListener('unhandledrejection', function(e){ logErr('Admin unhandledrejection:', e.reason || e); });
         if (document.readyState === 'complete' || document.readyState === 'interactive') onReady();

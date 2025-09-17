@@ -49,14 +49,16 @@ Admin (Decap CMS)
 - Drag & drop images; they are saved under `images/uploads/` by default
 - Publishing creates/updates files in `src/projects/`
 
-Deployment (Netlify suggested)
-------------------------------
+Deployment (Vercel + GitHub OAuth)
+----------------------------------
 
 1. Push to GitHub
-2. Create a new Netlify site from the repo
-3. Build command: `npm run build`  Publish directory: `_site`
-4. Enable Identity + Git Gateway for CMS logins
-5. Invite Jiyung via Netlify Identity. She will log in at `/admin`.
+2. Create a GitHub OAuth App with callback `https://YOUR_DOMAIN/api/auth/callback`
+3. On Vercel, set environment variables:
+   - `GITHUB_CLIENT_ID`
+   - `GITHUB_CLIENT_SECRET`
+4. Deploy to Vercel. Build command: `npm run build`, Output directory: `_site`
+5. Visit `/admin` to sign in via GitHub
 
 Notes
 -----
@@ -64,4 +66,12 @@ Notes
 - Existing static pages (`about.html`) are still served as-is.
 - Homepage tiles are generated from content; filters remain on the client.
 - You can keep images in current folders; CMS uploads go to `images/uploads/`.
+
+Admin notes
+-----------
+
+- Admin config embeds backend `{ base_url: '/api', auth_endpoint: 'auth' }`
+- Serverless endpoints:
+  - `GET /api/auth` → redirects to GitHub OAuth
+  - `GET /api/auth/callback` → exchanges code and stores token for Decap
 

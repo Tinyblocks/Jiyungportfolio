@@ -16,6 +16,12 @@ module.exports = async (req, res) => {
       return res.end('Missing code');
     }
 
+    // Compute redirect_uri exactly as used during authorization phase
+    const host = req.headers['x-forwarded-host'] || req.headers.host;
+    const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0];
+    const baseUrl = `${proto}://${host}`;
+    const redirectUri = `${baseUrl}/api/auth/callback`;
+
     const ghResp = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: {
@@ -25,7 +31,9 @@ module.exports = async (req, res) => {
       body: new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
-        code
+        code,
+        // Include redirect_uri to match authorize request per GitHub's spec
+        redirect_uri: redirectUri
       })
     });
     const json = await ghResp.json();
@@ -40,15 +48,37 @@ module.exports = async (req, res) => {
       <script>
         (function(){
           var tk = ${JSON.stringify(token)};
-          if (window.opener) {
-            // Send multiple formats for compatibility with different CMS versions
-            try { window.opener.postMessage('authorization:github:success:' + tk, '*'); } catch(e) {}
+          // Persist token as a last-resort fallback
+          try { localStorage.setItem('decap:github_token', tk); } catch(_) {}
+          try { localStorage.setItem('decap-cms-user', JSON.stringify({ token: tk, provider: 'github', backendName: 'github' })); } catch(_) {}
+          try { localStorage.setItem('netlify-cms-user', JSON.stringify({ token: tk, provider: 'github', backendName: 'github' })); } catch(_) {}
+          try { localStorage.setItem('netlify-cms.user', JSON.stringify({ token: tk, provider: 'github', backendName: 'github' })); } catch(_) {}
+          try { localStorage.setItem('netlify-cms-auth', tk); } catch(_) {}
+          try { if (window.opener && window.opener.localStorage) { 
+            window.opener.localStorage.setItem('decap-cms-user', JSON.stringify({ token: tk, provider: 'github', backendName: 'github' }));
+            window.opener.localStorage.setItem('decap:github_token', tk);
+            window.opener.localStorage.setItem('netlify-cms-user', JSON.stringify({ token: tk, provider: 'github', backendName: 'github' }));
+          }} catch(_e) {}
+
+          // Robust handshake with opener before sending the token
+          var attempts = 0;
+          function sendToken(){
+            if (!window.opener || attempts > 100) return finalize();
+            attempts++;
+            try {
+              // Multiple formats for Decap compatibility
+              window.opener.postMessage('authorization:github:success:' + tk, '*');
+            } catch(e) {}
             try { window.opener.postMessage('authorization:github:success:' + JSON.stringify({ token: tk }), '*'); } catch(e) {}
             try { window.opener.postMessage('authorization:github:success:' + JSON.stringify({ token: tk, provider: 'github' }), '*'); } catch(e) {}
-            window.close();
+            setTimeout(sendToken, 100);
           }
-          // Fallback: redirect back to admin in case popup cannot close or opened in same tab
-          setTimeout(function(){ try{ window.location.href = '/admin/'; }catch(e){} }, 250);
+          function finalize(){
+            try { window.close(); } catch(e) {}
+            // Fallback redirect in case the popup didn't close
+            setTimeout(function(){ try{ window.location.href = '/admin/#/collections/projects'; }catch(e){} }, 200);
+          }
+          try { sendToken(); } catch(_) { finalize(); }
         })();
       </script>
     </body></html>`;

@@ -2,8 +2,8 @@ backend:
   name: github
   repo: Tinyblocks/Jiyungportfolio
   branch: main
-  auth_type: implicit
-  app_id: Ov23lirFziJiwYr1epSi
+  base_url: /api
+  auth_endpoint: auth
 media_folder: "images"
 public_folder: "/images"
 publish_mode: simple
